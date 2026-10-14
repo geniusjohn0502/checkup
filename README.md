@@ -4,7 +4,7 @@
 
 - **線上網址**：https://checkup.morechoice.net
 - **本機檔案**：`~/Documents/checkup/index.html`（單一 HTML 檔，沒有後端、沒有資料庫）
-- **來源**：2026-10-14 在 Claude 上做好（https://claude.ai/artifact/AxJYDps7EXquDTtkCxiq4s），同日搬到自己的網域
+- **來源**：2026-10-14 在 Claude 上做好，同日搬到自己的網域；Claude 版 2026-10-15 已刪除，**這裡是唯一的一份**
 
 ## 資料存在哪
 
@@ -14,7 +14,6 @@
 ## 跟 Claude 版的差別
 
 只有「一鍵匯出 PDF」：Claude 版靠平台的下載功能，這裡改成瀏覽器直接下載。其餘完全一樣。
-⚠️ 兩邊是**各自獨立的兩份**，之後改其中一份，另一份不會跟著變。
 
 ## 網域設定
 
