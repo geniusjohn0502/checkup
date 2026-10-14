@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>灰哥財務健檢表</title>
+<meta name="description" content="填入收入、支出、資產與負債，自動算出個人淨值和五項財務健康指標。資料只存在你自己的瀏覽器裡。">
+<meta property="og:title" content="灰哥財務健檢表">
+<meta property="og:description" content="填入收入、支出、資產與負債，自動算出個人淨值和五項財務健康指標。資料只存在你自己的瀏覽器裡。">
+<meta property="og:url" content="https://checkup.morechoice.net/">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
+<style>
+/* Layout: 由上往下：收入｜支出 → 資產｜負債 → 健檢結果（淨值總覽 + 五項指標 + 調整前後對照）
+   燕麥奶版：全淺色單一主題（燕麥底、拿鐵區塊、可可文字、焦糖強調），不跟隨深色模式 */
+:root{
+  color-scheme:light;
+  --bg:#F6F0E8; --surface:#FFFCF7; --sunk:#F0E7DC; --line:#E4D2BE; --latte:#E4D2BE;
+  --fg:#4A3B34; --muted:#8A7A6E;
+  --accent:#B5703E; --gold:#C9A27A;
+  --good:#5F7F52; --good-bg:#E6EDDC; --warn:#B0862E; --warn-bg:#F7EDD2; --neg:#B5523E;
+  --save-bg:#E4EBF0; --save-fg:#4F6B80;   /* 儲蓄：霧藍 */
+  --inv-bg:#F6E2CE;  --inv-fg:#A15C2C;    /* 投資：杏桃 */
+  --font-display:"Noto Serif TC","Songti TC",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{text-wrap:balance;margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* Header */
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;padding-block:28px 20px;border-bottom:1px solid var(--line)}
+.top h1{font-family:var(--font-display);font-size:clamp(26px,4vw,34px);letter-spacing:.02em}
+.top h1 .bar{display:block;width:40px;height:3px;background:var(--gold);margin-top:10px;border-radius:2px}
+.top p{margin:12px 0 0;color:var(--muted);max-width:56ch;font-size:14px}
+.brand{display:flex;align-items:center;gap:10px}
+.avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--fg);display:grid;place-items:center;font-family:var(--font-display);font-size:18px;color:var(--fg);background:var(--surface)}
+.brand b{display:block;font-size:15px}
+.brand{text-align:right}
+.brand b{margin-bottom:4px}
+.social{display:flex;gap:8px;flex-wrap:wrap}
+.brand .social{justify-content:flex-end}
+.social a{font-size:13px;color:var(--fg);text-decoration:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 12px}
+.social a:hover{border-color:var(--accent);color:var(--accent)}
+.social a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.follow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.follow p{margin:0;font-size:14px}
+@media (max-width:640px){.brand{text-align:left}.brand .social{justify-content:flex-start}}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding-block:16px}
+.field{display:flex;align-items:center;gap:8px}
+.field label{font-size:13px;color:var(--muted);white-space:nowrap}
+.field #name{width:200px;max-width:100%}
+.spacer{flex:1}
+.btn{font:inherit;font-size:14px;border-radius:999px;padding:7px 16px;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent)}
+.btn:hover{background:var(--accent);color:var(--surface)}
+.btn.solid{background:var(--fg);border-color:var(--fg);color:var(--surface)}
+.btn.solid:hover{opacity:.88}
+.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn.ghost:hover{background:var(--sunk);color:var(--fg)}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.example-note{font-size:13px;color:var(--warn);background:var(--warn-bg);padding:4px 12px;border-radius:999px}
+
+/* Main */
+.main{display:grid;gap:32px}
+.inputs{display:grid;gap:22px;min-width:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 20px 16px;min-width:0}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pill{display:inline-block;font-size:13px;letter-spacing:.08em;color:var(--fg);background:var(--latte);padding:3px 12px;border-radius:999px;font-weight:500}
+.card-head small{color:var(--muted);font-size:13px}
+.group{margin-top:10px}
+.group-title{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);letter-spacing:.06em;border-bottom:1px dashed var(--line);padding-bottom:4px;margin-bottom:4px}
+.group-title .num{color:var(--fg);font-weight:500;letter-spacing:0}
+
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto 150px;gap:10px;align-items:center;padding:5px 0}
+.row label{font-size:14px;min-width:0}
+.row .hint{display:block;font-size:12px;color:var(--muted)}
+.row.tint{padding:8px 10px;border-radius:10px;margin-bottom:6px}
+.row.tint label{font-weight:700}
+.row.save{background:var(--save-bg)} .row.save label{color:var(--save-fg)}
+.row.inv{background:var(--inv-bg)}   .row.inv label{color:var(--inv-fg)}
+.row.tint .hint{font-weight:400}
+.row.tint input{background:var(--surface)}
+.unit{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;background:var(--surface)}
+.unit.y{border-color:var(--gold);color:var(--gold)}
+.money{position:relative}
+.money::before{content:"$";position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+input[type=text],input[type=date]{font:inherit;color:var(--fg);background:var(--sunk);border:1px solid transparent;border-radius:8px;padding:6px 10px;width:100%}
+input[type=date]{width:auto}
+.money input{text-align:right;padding-left:22px;font-variant-numeric:tabular-nums}
+input:hover{border-color:var(--line)}
+.auto{background:transparent;border:1px dashed var(--line);border-radius:8px;padding:6px 10px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+
+.debt-head,.debt-row{display:grid;grid-template-columns:minmax(0,1fr) 140px 120px;gap:10px;align-items:center}
+.debt-head{font-size:12px;color:var(--muted);padding-bottom:4px;border-bottom:1px dashed var(--line)}
+.debt-head span:not(:first-child){text-align:right}
+.debt-row{padding:5px 0}
+.debt-row label{font-size:14px}
+
+.totals{display:grid;gap:4px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.totals div{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.totals .strong{font-weight:700;font-size:16px}
+.totals .strong .num{color:var(--accent)}
+
+/* Results */
+.panel{display:grid;gap:16px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;padding-top:26px;border-top:1px solid var(--line)}
+.panel-head h2{font-family:var(--font-display);font-size:24px}
+.panel-head .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.msg{font-size:12px;color:var(--muted)}
+.compare-note{font-size:13px;background:var(--surface);border:1px dashed var(--gold);border-radius:10px;padding:8px 14px;color:var(--muted)}
+.compare-note b{color:var(--fg)}
+
+.summary{background:var(--latte);color:var(--fg);border-radius:14px;padding:20px}
+.summary h3{font-size:13px;letter-spacing:.12em;font-weight:500;opacity:.8}
+.summary .big{font-family:var(--font-display);font-size:30px;margin-top:4px;line-height:1.2;color:var(--accent)}
+.summary .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 16px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(74,59,52,.15)}
+.summary .grid span{display:block;font-size:12px;opacity:.75}
+.summary .grid b{font-weight:500;font-size:16px}
+.before{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.big + .before{font-size:13px;margin-top:2px}
+.neg{color:var(--neg) !important}
+
+.ind-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.ind{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-left:4px solid var(--warn);display:flex;flex-direction:column}
+.ind.ok{border-left-color:var(--good)}
+.ind-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ind-top h3{font-size:15px;font-weight:700}
+.chip{font-size:12px;padding:2px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn);white-space:nowrap}
+.ind.ok .chip{background:var(--good-bg);color:var(--good)}
+.chip::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
+.ind-val{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}
+.ind-val .v{font-family:var(--font-display);font-size:26px;line-height:1.1}
+.ind-val .t{font-size:13px;color:var(--muted)}
+.meter{position:relative;height:6px;background:var(--sunk);border-radius:3px;margin-top:10px}
+.meter i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--warn);transition:width .3s}
+.ind.ok .meter i{background:var(--good)}
+.meter u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--fg);opacity:.55}
+.gap{font-size:13px;font-weight:500;color:var(--warn);background:var(--warn-bg);border-radius:8px;padding:6px 10px;margin-top:10px}
+.ind.ok .gap{color:var(--good);background:var(--good-bg)}
+.ind .before{margin-top:8px}
+.formula{font-size:12px;color:var(--muted);margin-top:auto;padding-top:8px}
+
+.codepanel{display:grid;gap:8px;background:var(--surface);border:1px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.panel .codepanel{margin-bottom:0}
+.codepanel label{font-size:14px;font-weight:700}
+.codepanel textarea{width:100%;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;word-break:break-all;background:var(--sunk);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;resize:vertical}
+.codepanel .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.codepanel .msg.err{color:var(--neg)}
+.codepanel p{margin:0;font-size:13px;color:var(--muted)}
+.copybox{width:100%;font:12px/1.5 var(--font-body);background:var(--sunk);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+
+footer{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+
+.dock{display:none}
+@media (max-width:1000px){
+  .ind-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ind-list .ind:last-child{grid-column:1/-1}
+  .summary .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:920px){
+  .dock{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--latte);color:var(--fg);border-top:1px solid var(--gold);
+    justify-content:space-around;gap:12px;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .dock div{text-align:center}
+  .dock span{display:block;font-size:11px;opacity:.7}
+  .dock b{font-size:16px;font-weight:500}
+}
+@media (max-width:640px){
+  .two{grid-template-columns:minmax(0,1fr)}
+  .row{grid-template-columns:minmax(0,1fr) auto 128px}
+  .debt-head,.debt-row{grid-template-columns:minmax(0,1fr) 112px 96px}
+  section.card{padding:16px 14px 12px}
+  .ind-list{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top pdf-block">
+    <div>
+      <h1>財務健檢表<span class="bar"></span></h1>
+      <p>收入和支出都以「月」填寫，獎金紅利、利息股息這類一年領一兩次的，直接填年度金額，系統會自動換算。每月存下來、投資出去的錢填在支出最上方的「儲蓄」「投資」，會算進你的儲蓄率。</p>
+    </div>
+    <div class="brand">
+      <div><b>灰哥</b>
+        <span class="social"><a href="https://www.instagram.com/more__choice/" target="_blank" rel="noopener">IG @more__choice</a><a href="https://www.threads.com/@more__choice" target="_blank" rel="noopener">Threads @more__choice</a></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar pdf-block">
+    <div class="field"><label for="name">姓名</label><input type="text" id="name" placeholder="選填" autocomplete="off"></div>
+    <div class="field"><label for="date">健檢日期</label><input type="date" id="date"></div>
+    <span class="example-note no-pdf" id="exampleNote">目前是範例數字，改成你自己的就好</span>
+    <span class="spacer"></span>
+    <button class="btn solid no-pdf" id="btnPaste" type="button">貼上健檢碼</button>
+    <button class="btn no-pdf" id="btnClear" type="button">清空，從頭填</button>
+    <button class="btn ghost no-pdf" id="btnExample" type="button">放回範例</button>
+  </div>
+
+  <div class="codepanel no-pdf" id="pastePanel" hidden>
+    <label for="pasteInput">貼上灰哥傳給你的健檢碼</label>
+    <textarea id="pasteInput" rows="3" placeholder="MC-20261014-…"></textarea>
+    <div class="actions">
+      <button class="btn solid" id="btnLoad" type="button">載入健檢資料</button>
+      <button class="btn ghost" id="btnPasteCancel" type="button">取消</button>
+      <span class="msg" id="pasteMsg"></span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="inputs">
+      <div class="two pdf-block">
+        <section class="card" aria-labelledby="h-inc">
+          <div class="card-head"><span class="pill" id="h-inc">收入</span><small>單位：月（標「年」者填年度）</small></div>
+          <div id="incomeBox"></div>
+          <div class="totals">
+            <div><span>月收入合計</span><span class="num" id="t-incM"></span></div>
+            <div class="strong"><span>年收入總計</span><span class="num" id="t-incY"></span></div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="h-exp">
+          <div class="card-head"><span class="pill" id="h-exp">支出</span><small>單位：月</small></div>
+          <div id="expenseBox"></div>
+          <div class="totals">
+            <div><span>每月儲蓄＋投資</span><span class="num" id="t-keep"></span></div>
+            <div><span>平均月生活支出</span><span class="num" id="t-expM"></span></div>
+            <div><span>年生活支出</span><span class="num" id="t-expY"></span></div>
+            <div class="strong"><span>平均月可支配現金流</span><span class="num" id="t-flowM"></span></div>
+            <div class="strong"><span>每年可支配淨現金流</span><span class="num" id="t-flow"></span></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="two pdf-block">
+        <section class="card" aria-labelledby="h-ast">
+          <div class="card-head"><span class="pill" id="h-ast">資產</span><small>填目前餘額／市值</small></div>
+          <div id="assetBox"></div>
+          <div class="totals">
+            <div class="strong"><span>總資產</span><span class="num" id="t-ast"></span></div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="h-debt">
+          <div class="card-head"><span class="pill" id="h-debt">負債</span><small>月還款會自動帶入支出</small></div>
+          <div class="debt-head"><span>項目</span><span>目前餘額</span><span>月還款</span></div>
+          <div id="debtBox"></div>
+          <div class="totals">
+            <div><span>每月還款合計</span><span class="num" id="t-pay"></span></div>
+            <div class="strong"><span>總負債</span><span class="num" id="t-debt"></span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <section class="panel pdf-block" aria-labelledby="h-result">
+      <div class="panel-head">
+        <h2 id="h-result">健檢結果</h2>
+        <div class="tools no-pdf">
+          <span class="msg" id="copyMsg"></span>
+          <button class="btn solid" id="btnPdf" type="button" hidden>一鍵匯出 PDF</button>
+          <button class="btn solid" id="btnSnap" type="button">記錄為調整前</button>
+          <button class="btn ghost" id="btnUnsnap" type="button" hidden>清除對照</button>
+          <button class="btn ghost" id="btnCopy" type="button">複製健檢結果</button>
+          <button class="btn" id="btnCode" type="button">產生健檢碼</button>
+        </div>
+      </div>
+      <div class="codepanel no-pdf" id="codePanel" hidden>
+        <label for="codeOut" id="codeLabel">健檢碼</label>
+        <textarea id="codeOut" rows="3" readonly></textarea>
+        <div class="actions">
+          <button class="btn solid" id="btnCodeCopy" type="button">複製健檢碼</button>
+          <button class="btn ghost" id="btnCodeClose" type="button">收起</button>
+          <span class="msg" id="codeMsg"></span>
+        </div>
+        <p>把這串碼傳給客戶，請對方打開同一個連結，按上方「貼上健檢碼」就能看到今天填的內容。你自己也存一份，下次回訪貼上就能接著用。</p>
+      </div>
+      <div class="compare-note" id="compareNote" hidden></div>
+      <textarea class="copybox no-pdf" id="copyBox" rows="10" readonly hidden></textarea>
+
+      <div class="summary">
+        <h3>個人淨值</h3>
+        <div class="big num" id="s-net"></div>
+        <span class="before num" id="b-net"></span>
+        <div class="grid" id="sumGrid"></div>
+      </div>
+
+      <div class="ind-list" id="indList"></div>
+
+      <div class="follow">
+        <p>追蹤灰哥，分享實用的小資投資觀念</p>
+        <div class="social"><a href="https://www.instagram.com/more__choice/" target="_blank" rel="noopener">IG @more__choice</a><a href="https://www.threads.com/@more__choice" target="_blank" rel="noopener">Threads @more__choice</a></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <span>資料只會存在你自己這台裝置的瀏覽器裡，灰哥和其他人都看不到。</span>
+    <span>© 灰哥 @more__choice</span>
+  </footer>
+</div>
+
+<div class="dock" aria-hidden="true">
+  <div><span>平均月可支配現金流</span><b class="num" id="d-flowM"></b></div>
+  <div><span>個人淨值</span><b class="num" id="d-net"></b></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const INCOME=[
+  {g:'工資收入',key:'wage',items:[
+    {id:'salary',label:'工作薪資',u:'m'},
+    {id:'bonus',label:'獎金紅利',u:'y'},
+    {id:'side',label:'兼差／斜槓收入',u:'m'},
+    {id:'otherWage',label:'其他工資收入',u:'m'}]},
+  {g:'非工資收入',key:'nonwage',items:[
+    {id:'dividend',label:'利息、股息',u:'y'},
+    {id:'rent',label:'房地產（租金）',u:'m'},
+    {id:'biz',label:'事業營收',u:'m'},
+    {id:'otherInv',label:'其他投資',u:'m'}]},
+  {g:'其他收入',key:'other',items:[{id:'otherInc',label:'其他收入',u:'m'}]}
+];
+const KEEP=[
+  {id:'saving',label:'儲蓄',hint:'存款、定存、儲蓄險保費',cls:'save'},
+  {id:'investing',label:'投資',hint:'定期定額、投資型保單保費',cls:'inv'}
+];
+const EXPENSE=[
+  {id:'food',label:'伙食費'},{id:'house',label:'房租／房貸'},{id:'transport',label:'交通費'},
+  {id:'phone',label:'電話費'},{id:'child',label:'撫育費'},{id:'parents',label:'孝親費'},
+  {id:'fun',label:'娛樂'},{id:'learn',label:'學習'},{id:'insurance',label:'保險費（保障型）',hint:'壽險、醫療、意外險'},
+  {id:'utility',label:'水電費'},{id:'shopping',label:'購物'},{id:'pet',label:'寵物'},{id:'otherExp',label:'其他'}
+];
+const ASSETS=[
+  {g:'流動資產',key:'liquid',items:[{id:'cash',label:'現金、活存'},{id:'fx',label:'外幣'},{id:'liqOther',label:'其他'}]},
+  {g:'保本型資產',key:'safe',items:[{id:'deposit',label:'定存'},{id:'savIns',label:'儲蓄險'},{id:'safeOther',label:'其他'}]},
+  {g:'投資型資產',key:'invest',items:[{id:'stock',label:'股票'},{id:'fund',label:'基金'},{id:'ilp',label:'投資型保單'},{id:'invRe',label:'投資型不動產'},{id:'crypto',label:'加密貨幣'},{id:'invOther',label:'其他'}]},
+  {g:'固定資產',key:'fixed',items:[{id:'car',label:'自用車子'},{id:'home',label:'自用房屋、土地'},{id:'fixOther',label:'其他'}]}
+];
+const DEBTS=[
+  {id:'cc',label:'信用卡未繳清'},{id:'personal',label:'信用貸款'},{id:'mortgage',label:'房屋貸款'},
+  {id:'carLoan',label:'車子貸款'},{id:'student',label:'就學貸款'},{id:'debtOther',label:'其他負債'}
+];
+const EXAMPLE={salary:50000,dividend:30000,food:10000,house:12000,transport:2000,phone:499,parents:3000,fun:3000,learn:2000,insurance:3000,utility:1000,shopping:2000,cash:100000,savIns:300000,stock:500000,personal_bal:300000,personal_pay:8000};
+
+const SUM=[
+  {k:'incM',l:'平均月收入'},{k:'incY',l:'年收入'},
+  {k:'expM',l:'平均月生活支出'},{k:'keepM',l:'每月儲蓄＋投資'},
+  {k:'flowM',l:'平均月可支配現金流',signed:true},{k:'flow',l:'年可支配淨現金流',signed:true},
+  {k:'ast',l:'總資產'},{k:'debt',l:'總負債'}
+];
+
+const IND=[
+  {id:'save',name:'儲蓄率',q:'你每年為自己留下多少財富？',formula:'（儲蓄＋投資＋可支配現金流）÷ 收入',target:'20%～50%',lo:.2,dir:'gte',max:.5,fmt:'pct',
+   gap:r=>{const g=.2*r.incM-(r.incM-r.expM);return '每月再多存 '+fmt(g)+' 就達 20%'}},
+  {id:'emerg',name:'緊急備用金倍數',q:'',formula:'流動資產 ÷ 平均月生活支出',target:'3～6 倍',lo:3,dir:'gte',max:6,fmt:'x',
+   gap:r=>'流動資產再存 '+fmt(3*r.expM-r.liquid)+' 就達 3 倍'},
+  {id:'debt',name:'收入負債比',q:'',formula:'每月還款 ÷ 平均月收入',target:'30% 以下',lo:.3,dir:'lte',max:.6,fmt:'pct',
+   gap:r=>'每月還款再降 '+fmt(r.pay-.3*r.incM)+' 就回到 30%'},
+  {id:'passive',name:'非工資收入占比',q:'你的錢有在為你工作嗎？',formula:'非工資收入 ÷ 收入',target:'50%～70%',lo:.5,dir:'gte',max:1,fmt:'pct',
+   gap:r=>'每月非工資收入再多 '+fmt((r.incM-r.nonM)-r.nonM)+' 就達 50%'},
+  {id:'fi',name:'財務自由指數',q:'',formula:'個人淨值 ÷ 年生活支出',target:'20～25 倍',lo:20,dir:'gte',max:25,fmt:'x',
+   gap:r=>'淨值再累積 '+fmt(20*r.expY-r.net)+' 就達 20 倍'}
+];
+
+const STORE='morechoice-health-v1';
+let state={}, isExample=true, snap=null;
+const $=id=>document.getElementById(id);
+const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+const fmtSigned=n=>(Math.round(n)<0?'-':'')+fmt(Math.abs(n));
+const parse=s=>{const n=Number(String(s).replace(/[^\d.\-]/g,''));return isFinite(n)?n:0};
+const v=id=>Number(state[id])||0;
+const fmtInd=(x,val)=>val===null||val===undefined?'—':x.fmt==='pct'?(val*100).toFixed(1)+'%':val.toFixed(2)+' 倍';
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+
+function moneyInput(id){
+  const w=document.createElement('div');w.className='money';
+  const i=document.createElement('input');i.type='text';i.id=id;i.inputMode='numeric';i.autocomplete='off';
+  i.addEventListener('focus',()=>{i.value=v(id)?String(v(id)):'';i.select()});
+  i.addEventListener('input',()=>{state[id]=parse(i.value);isExample=false;update(true)});
+  i.addEventListener('blur',()=>{i.value=v(id)?Math.round(v(id)).toLocaleString('en-US'):''});
+  i.placeholder='0';w.appendChild(i);return w;
+}
+function row(item,unit,cls){
+  const r=document.createElement('div');r.className='row'+(cls?' tint '+cls:'');
+  const l=document.createElement('label');l.htmlFor=item.id;l.textContent=item.label;
+  if(item.hint){const h=document.createElement('span');h.className='hint';h.textContent=item.hint;l.appendChild(h)}
+  if(unit==='y'){const h=document.createElement('span');h.className='hint num';h.id='hint-'+item.id;l.appendChild(h)}
+  const u=document.createElement('span');u.className='unit'+(unit==='y'?' y':'');u.textContent=unit==='y'?'年':'月';
+  r.append(l,u,moneyInput(item.id));return r;
+}
+function group(title,key){
+  const d=document.createElement('div');d.className='group';
+  d.innerHTML=`<div class="group-title"><span>${title}</span><span class="num" id="gt-${key}"></span></div>`;
+  return d;
+}
+function build(){
+  const ib=$('incomeBox');
+  INCOME.forEach(g=>{const d=group(g.g,g.key);g.items.forEach(it=>d.appendChild(row(it,it.u)));ib.appendChild(d)});
+
+  const eb=$('expenseBox');
+  const k=group('存下來的錢','keep');KEEP.forEach(it=>k.appendChild(row(it,'m',it.cls)));eb.appendChild(k);
+  const e=group('生活支出','living');EXPENSE.forEach(it=>e.appendChild(row(it,'m')));
+  const r=document.createElement('div');r.className='row';
+  r.innerHTML=`<label>負債還款<span class="hint">由負債區自動加總</span></label><span class="unit">月</span><div class="auto" id="autoPay"></div>`;
+  e.appendChild(r);eb.appendChild(e);
+
+  const ab=$('assetBox');
+  ASSETS.forEach(g=>{
+    const d=group(g.g,g.key);
+    g.items.forEach(it=>{
+      const r=document.createElement('div');r.className='row';r.style.gridTemplateColumns='minmax(0,1fr) 150px';
+      const l=document.createElement('label');l.htmlFor=it.id;l.textContent=it.label;
+      r.append(l,moneyInput(it.id));d.appendChild(r);
+    });
+    ab.appendChild(d);
+  });
+
+  const db=$('debtBox');
+  DEBTS.forEach(it=>{
+    const r=document.createElement('div');r.className='debt-row';
+    const l=document.createElement('label');l.htmlFor=it.id+'_bal';l.textContent=it.label;
+    r.append(l,moneyInput(it.id+'_bal'),moneyInput(it.id+'_pay'));
+    r.lastChild.firstChild.setAttribute('aria-label',it.label+' 月還款');
+    db.appendChild(r);
+  });
+
+  $('sumGrid').innerHTML=SUM.map(s=>`<div><span>${s.l}</span><b class="num" id="s-${s.k}"></b><span class="before num" id="b-${s.k}"></span></div>`).join('');
+
+  const il=$('indList');
+  IND.forEach(x=>{
+    const d=document.createElement('div');d.className='ind';d.id='ind-'+x.id;
+    d.innerHTML=`<div class="ind-top"><h3>${x.name}</h3><span class="chip"></span></div>
+      <div class="ind-val"><span class="v num"></span><span class="t">目標 ${x.target}</span></div>
+      <div class="meter"><i></i><u style="left:${x.lo/x.max*100}%"></u></div>
+      <div class="gap num"></div>
+      <span class="before num"></span>
+      <div class="formula">${x.q?x.q+'｜':''}${x.formula}</div>`;
+    il.appendChild(d);
+  });
+}
+
+function compute(){
+  const r={};
+  INCOME.forEach(g=>{let s=0;g.items.forEach(it=>{s+=it.u==='y'?v(it.id)/12:v(it.id)});r[g.key]=s});
+  r.incM=r.wage+r.nonwage+r.other;r.nonM=r.nonwage;
+  r.pay=0;r.debt=0;DEBTS.forEach(d=>{r.pay+=v(d.id+'_pay');r.debt+=v(d.id+'_bal')});
+  r.keepM=0;KEEP.forEach(k=>r.keepM+=v(k.id));
+  r.expM=r.pay;EXPENSE.forEach(e=>r.expM+=v(e.id));
+  r.ast=0;ASSETS.forEach(g=>{let s=0;g.items.forEach(it=>s+=v(it.id));r['a_'+g.key]=s;r.ast+=s});
+  r.liquid=r.a_liquid;
+  r.incY=r.incM*12;r.expY=r.expM*12;
+  r.flowM=r.incM-r.expM-r.keepM;r.flow=r.flowM*12;
+  r.net=r.ast-r.debt;
+  r.ind={
+    save:r.incM?(r.incM-r.expM)/r.incM:null,
+    emerg:r.expM?r.liquid/r.expM:null,
+    debt:r.incM?r.pay/r.incM:null,
+    passive:r.incM?r.nonM/r.incM:null,
+    fi:r.expY?r.net/r.expY:null
+  };
+  r.ok={};
+  IND.forEach(x=>{const val=r.ind[x.id];r.ok[x.id]=val!==null&&(x.dir==='gte'?val>=x.lo:val<=x.lo)});
+  return r;
+}
+
+function update(save){
+  const r=compute();
+  INCOME.forEach(g=>{$('gt-'+g.key).textContent=fmt(r[g.key])});
+  INCOME.forEach(g=>g.items.forEach(it=>{if(it.u==='y'){$('hint-'+it.id).textContent=v(it.id)?'≈ 每月 '+fmt(v(it.id)/12):''}}));
+  ASSETS.forEach(g=>{$('gt-'+g.key).textContent=fmt(r['a_'+g.key])});
+  $('gt-keep').textContent=fmt(r.keepM);$('gt-living').textContent=fmt(r.expM);
+  $('autoPay').textContent=fmt(r.pay);
+  $('t-incM').textContent=fmt(r.incM);$('t-incY').textContent=fmt(r.incY);
+  $('t-keep').textContent=fmt(r.keepM);$('t-expM').textContent=fmt(r.expM);$('t-expY').textContent=fmt(r.expY);
+  $('t-flowM').textContent=fmtSigned(r.flowM);$('t-flow').textContent=fmtSigned(r.flow);
+  $('t-ast').textContent=fmt(r.ast);$('t-pay').textContent=fmt(r.pay);$('t-debt').textContent=fmt(r.debt);
+
+  $('s-net').textContent=fmtSigned(r.net);$('s-net').classList.toggle('neg',r.net<0);
+  $('b-net').textContent=snap?'調整前 '+fmtSigned(snap.net):'';
+  SUM.forEach(s=>{
+    const el=$('s-'+s.k);el.textContent=s.signed?fmtSigned(r[s.k]):fmt(r[s.k]);
+    el.classList.toggle('neg',s.signed&&r[s.k]<0);
+    $('b-'+s.k).textContent=snap?'調整前 '+(s.signed?fmtSigned(snap[s.k]):fmt(snap[s.k])):'';
+  });
+  $('d-flowM').textContent=fmtSigned(r.flowM);$('d-net').textContent=fmtSigned(r.net);
+
+  IND.forEach(x=>{
+    const val=r.ind[x.id],ok=r.ok[x.id],el=$('ind-'+x.id);
+    el.classList.toggle('ok',ok);
+    el.querySelector('.chip').textContent=val===null?'資料不足':ok?'達標':'持續努力';
+    el.querySelector('.v').textContent=fmtInd(x,val);
+    el.querySelector('.meter i').style.width=(val===null?0:Math.max(0,Math.min(1,val/x.max))*100)+'%';
+    const g=el.querySelector('.gap');
+    g.textContent=val===null?'填完相關欄位後就會顯示':ok?'已經達標，繼續保持':x.gap(r);
+    el.querySelector('.before').textContent=snap?'調整前 '+fmtInd(x,snap.ind[x.id])+'（'+(snap.ok[x.id]?'達標':'持續努力')+'）':'';
+  });
+
+  $('exampleNote').hidden=!isExample;
+  $('btnUnsnap').hidden=!snap;
+  $('btnSnap').textContent=snap?'重新記錄調整前':'記錄為調整前';
+  $('compareNote').hidden=!snap;
+  if(snap)$('compareNote').innerHTML='<b>對照模式</b>　大字是調整後的現況，灰色小字是你按下「記錄為調整前」那一刻的數字。';
+  window.__last=r;
+  if(save){try{localStorage.setItem(STORE,JSON.stringify({state,isExample,snap,name:$('name').value,date:$('date').value}))}catch(e){}}
+}
+
+function fill(){
+  document.querySelectorAll('.money input').forEach(i=>{i.value=v(i.id)?Math.round(v(i.id)).toLocaleString('en-US'):''});
+}
+
+function summaryText(){
+  const r=window.__last,name=$('name').value.trim(),date=$('date').value;
+  const b=(k,signed)=>snap?`（調整前 ${signed?fmtSigned(snap[k]):fmt(snap[k])}）`:'';
+  const lines=[`【財務健檢結果】${name?' '+name:''}${date?'｜'+date:''}`,
+    `平均月收入 ${fmt(r.incM)}${b('incM')}｜年收入 ${fmt(r.incY)}${b('incY')}`,
+    `平均月生活支出 ${fmt(r.expM)}${b('expM')}｜每月儲蓄＋投資 ${fmt(r.keepM)}${b('keepM')}`,
+    `平均月可支配現金流 ${fmtSigned(r.flowM)}${b('flowM',1)}｜年可支配淨現金流 ${fmtSigned(r.flow)}${b('flow',1)}`,
+    `總資產 ${fmt(r.ast)}｜總負債 ${fmt(r.debt)}｜個人淨值 ${fmtSigned(r.net)}${b('net',1)}`,''];
+  IND.forEach(x=>{
+    const pre=snap?`（調整前 ${fmtInd(x,snap.ind[x.id])}）`:'';
+    lines.push(`${r.ok[x.id]?'🟢':'🟡'} ${x.name}：${fmtInd(x,r.ind[x.id])}${pre}，目標 ${x.target}`);
+  });
+  return lines.join('\n');
+}
+
+build();
+let loaded=null;
+try{loaded=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){}
+if(loaded&&loaded.state){state=loaded.state;isExample=!!loaded.isExample;snap=loaded.snap||null;$('name').value=loaded.name||'';$('date').value=loaded.date||today()}
+else{state={...EXAMPLE};isExample=true;$('date').value=today()}
+fill();update(false);
+
+$('name').addEventListener('input',()=>update(true));
+$('date').addEventListener('change',()=>update(true));
+$('btnClear').addEventListener('click',()=>{state={};isExample=false;snap=null;fill();update(true)});
+$('btnExample').addEventListener('click',()=>{state={...EXAMPLE};isExample=true;snap=null;fill();update(true)});
+$('btnSnap').addEventListener('click',()=>{
+  const r=compute();snap={ind:r.ind,ok:r.ok,net:r.net};SUM.forEach(s=>snap[s.k]=r[s.k]);
+  update(true);$('copyMsg').textContent='已記錄，接著調整上方數字看看變化';
+});
+$('btnUnsnap').addEventListener('click',()=>{snap=null;$('copyMsg').textContent='';update(true)});
+$('btnCopy').addEventListener('click',()=>{
+  const t=summaryText(),box=$('copyBox');
+  const fallback=()=>{box.hidden=false;box.value=t;box.focus();box.select();$('copyMsg').textContent='已選取文字，請長按或按 Ctrl+C 複製'};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='已複製';box.hidden=true},fallback);
+  }else fallback();
+});
+
+/* ---------- 一鍵匯出 PDF（A4，逐區塊排版，不從中間切斷卡片） ---------- */
+if(window.html2canvas&&window.jspdf)$('btnPdf').hidden=false;
+function saveBlob(blob,filename){
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+async function buildPdf(){
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  const PW=210,PH=297,M=10,W=PW-2*M,H=PH-2*M;
+  const bg=getComputedStyle(document.body).backgroundColor;
+  const paintBg=()=>{pdf.setFillColor(246,240,232);pdf.rect(0,0,PW,PH,'F')};
+  paintBg();
+  let y=M;
+  for(const el of document.querySelectorAll('.pdf-block')){
+    const canvas=await html2canvas(el,{scale:2,backgroundColor:bg,windowWidth:1240,useCORS:true,
+      ignoreElements:n=>n.classList&&n.classList.contains('no-pdf')});
+    const mmPerPx=W/canvas.width;
+    let hMm=canvas.height*mmPerPx;
+    if(hMm<=H){
+      if(y+hMm>M+H){pdf.addPage();paintBg();y=M}
+      pdf.addImage(canvas.toDataURL('image/jpeg',.92),'JPEG',M,y,W,hMm);
+      y+=hMm+5;
+    }else{
+      // 區塊比一頁還高才切片
+      if(y>M){pdf.addPage();paintBg();y=M}
+      const sliceH=Math.floor(H/mmPerPx);
+      for(let sy=0;sy<canvas.height;sy+=sliceH){
+        const h=Math.min(sliceH,canvas.height-sy);
+        const c=document.createElement('canvas');c.width=canvas.width;c.height=h;
+        c.getContext('2d').drawImage(canvas,0,sy,canvas.width,h,0,0,canvas.width,h);
+        if(sy>0){pdf.addPage();paintBg();y=M}
+        pdf.addImage(c.toDataURL('image/jpeg',.92),'JPEG',M,y,W,h*mmPerPx);
+        y+=h*mmPerPx+5;
+      }
+    }
+  }
+  return pdf.output('blob');
+}
+$('btnPdf').addEventListener('click',async()=>{
+  const btn=$('btnPdf'),msg=$('copyMsg');
+  btn.disabled=true;msg.textContent='正在產生 PDF…';
+  try{
+    const blob=await buildPdf();
+    const name=$('name').value.trim(),date=$('date').value||today();
+    const filename=`財務健檢${name?'_'+name:''}_${date}.pdf`;
+    saveBlob(blob,filename);
+    msg.textContent='PDF 已下載';
+  }catch(e){
+    msg.textContent='這裡暫時無法匯出 PDF，請重新整理頁面再試一次';
+  }finally{btn.disabled=false}
+});
+
+/* ---------- 健檢碼：MC-日期-資料 ---------- */
+const b64e=bytes=>{let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const b64d=str=>{str=str.replace(/-/g,'+').replace(/_/g,'/');while(str.length%4)str+='=';const s=atob(str);return Uint8Array.from(s,c=>c.charCodeAt(0))};
+async function pipe(bytes,stream){return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer())}
+async function encodeCode(){
+  const clean={};Object.keys(state).forEach(k=>{if(v(k))clean[k]=v(k)});
+  const date=$('date').value||today();
+  const obj={s:clean,n:$('name').value.trim(),d:date,p:snap};
+  let bytes=new TextEncoder().encode(JSON.stringify(obj)),flag='j';
+  if(window.CompressionStream){try{bytes=await pipe(bytes,new CompressionStream('deflate-raw'));flag='z'}catch(e){}}
+  return `MC-${date.replace(/-/g,'')}-${flag}${b64e(bytes)}`;
+}
+async function decodeCode(raw){
+  const code=raw.replace(/\s+/g,'');
+  const m=code.match(/^MC-(\d{8})-([zj])([A-Za-z0-9_-]+)$/);
+  if(!m)throw new Error('format');
+  let bytes=b64d(m[3]);
+  if(m[2]==='z'){
+    if(!window.DecompressionStream)throw new Error('browser');
+    bytes=await pipe(bytes,new DecompressionStream('deflate-raw'));
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+$('btnCode').addEventListener('click',async()=>{
+  const code=await encodeCode();
+  const name=$('name').value.trim(),date=$('date').value||today();
+  $('codeLabel').textContent=`健檢碼｜${name?name+'｜':''}${date}`;
+  $('codeOut').value=code;$('codeMsg').textContent='';$('codePanel').hidden=false;
+});
+$('btnCodeClose').addEventListener('click',()=>{$('codePanel').hidden=true});
+$('btnCodeCopy').addEventListener('click',()=>{
+  const box=$('codeOut');
+  const fallback=()=>{box.focus();box.select();$('codeMsg').textContent='已選取，請長按或按 Ctrl+C 複製'};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(box.value).then(()=>{$('codeMsg').textContent='已複製，可以貼到 LINE 了'},fallback);
+  }else fallback();
+});
+$('btnPaste').addEventListener('click',()=>{$('pastePanel').hidden=false;$('pasteMsg').textContent='';$('pasteMsg').classList.remove('err');$('pasteInput').focus()});
+$('btnPasteCancel').addEventListener('click',()=>{$('pastePanel').hidden=true;$('pasteInput').value=''});
+$('btnLoad').addEventListener('click',async()=>{
+  const msg=$('pasteMsg');msg.classList.remove('err');
+  try{
+    const obj=await decodeCode($('pasteInput').value);
+    state=obj.s||{};snap=obj.p||null;isExample=false;
+    $('name').value=obj.n||'';$('date').value=obj.d||today();
+    fill();update(true);
+    $('pastePanel').hidden=true;$('pasteInput').value='';
+    $('copyMsg').textContent=`已載入${obj.n?' '+obj.n+' ':''}${obj.d||''} 的健檢資料`;
+    $('h-inc').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    msg.classList.add('err');
+    msg.textContent=e.message==='browser'?'這個瀏覽器版本太舊，請改用最新版 Chrome 或 Safari 開啟':'這串健檢碼不完整，請確認整串都有複製到（開頭是 MC-）';
+  }
+});
+})();
+</script>
+
+</body></html>
