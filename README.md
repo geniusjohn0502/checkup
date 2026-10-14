@@ -20,4 +20,4 @@
 
 - Cloudflare DNS：`CNAME` `checkup` → `geniusjohn0502.github.io`，**Proxy 關閉（灰色雲朵，僅 DNS）**
 - GitHub：Settings → Pages → Custom domain `checkup.morechoice.net`，勾選 Enforce HTTPS
-- 憑證卡住發不出來時：把自訂網域移除 → 等建置完成 → 再設回去（2026-08-22 預約頁踩過）
+- 憑證卡住發不出來時：**先等 DNS 生效 10–15 分鐘**，再把自訂網域移除 → 等建置完成 → 等 1 分鐘 → 設回去（2026-10-14 這頁就是做太早，多等了一個多小時）
