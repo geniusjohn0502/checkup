@@ -61,6 +61,7 @@ h1,h2,h3{text-wrap:balance;margin:0}
 .consult-cta{display:flex;flex-direction:column;align-items:center;gap:8px;flex:0 0 auto}
 .consult-cta .btn{font-size:15px;padding:10px 24px;text-decoration:none}
 .consult-cta small{font-size:12px;color:var(--muted)}
+.consult-cta small a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 @media (max-width:640px){.consult{padding:18px}.consult-cta{width:100%}.consult-cta .btn{width:100%;text-align:center}}
 @media (max-width:640px){.brand{text-align:left}.brand .social{justify-content:flex-start}}
 
@@ -309,16 +310,16 @@ footer{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);display
 
       <div class="ind-list" id="indList"></div>
 
-      <!-- 預約諮詢引導：不放進 PDF（PDF 是存檔用的健檢報告，連結點不了） -->
+      <!-- 健檢後的下一步：主按鈕加 LINE 傳結果（門檻低、灰哥看得到是誰），預約諮詢留小字（2026-10-22 灰哥定）。不放進 PDF（PDF 是存檔用的健檢報告，連結點不了） -->
       <div class="consult no-pdf">
         <div class="consult-text">
           <h3>恭喜你，完成了自己的財務健檢</h3>
           <p>願意把數字攤開來看，真的很不容易。接下來不用一次到位，照著上面 5 個指標，一次往前推一點，財務狀況就會慢慢變好。</p>
-          <p>如果你希望有人陪你一起看這些指標，告訴你下一步可以先做什麼，歡迎預約我的 45 分鐘免費諮詢。</p>
+          <p>看完 5 個指標，不知道該從哪裡開始？把健檢結果截圖傳到我的 LINE，我幫你挑一個現在就能動手的。</p>
         </div>
         <div class="consult-cta">
-          <a class="btn solid" href="https://consult.morechoice.net" target="_blank" rel="noopener">預約 45 分鐘免費諮詢</a>
-          <small>線上 Google Meet／每月限量名額</small>
+          <a class="btn solid" href="https://lin.ee/0odvRv4" target="_blank" rel="noopener">加 LINE，傳健檢結果給我</a>
+          <small>想直接聊 45 分鐘，也可以<a href="https://consult.morechoice.net" target="_blank" rel="noopener">預約免費諮詢</a></small>
         </div>
       </div>
 
